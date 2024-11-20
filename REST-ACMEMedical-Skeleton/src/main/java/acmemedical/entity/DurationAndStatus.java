@@ -10,6 +10,7 @@ import java.io.Serializable;
 import java.time.LocalDateTime;
 import java.util.Objects;
 
+import jakarta.persistence.Basic;
 import jakarta.persistence.Column;
 import jakarta.persistence.Embeddable;
 
@@ -19,14 +20,17 @@ public class DurationAndStatus implements Serializable {
 	private static final long serialVersionUID = 1L;
 
 	// TODO DS02 - Add annotations
+	@Basic(optional = false)
 	@Column(name = "start_date", nullable = false)
 	private LocalDateTime startDate;
 	
 	// TODO DS03 - Add annotations
+	@Basic(optional = false)
 	@Column(name = "end_date", nullable = false)
 	private LocalDateTime endDate;
 
 	// TODO DS04 - Add annotations
+	@Basic(optional = false)
 	@Column(name = "active", nullable = false)
 	private byte active;
 

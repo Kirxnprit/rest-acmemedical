@@ -10,10 +10,15 @@ import java.io.Serializable;
 import java.util.HashSet;
 import java.util.Set;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+
+import jakarta.persistence.Basic;
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
+import jakarta.persistence.NamedQueries;
+import jakarta.persistence.NamedQuery;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
 
@@ -26,27 +31,44 @@ import jakarta.persistence.Table;
 @Entity(name= "Physician")
 @Table(name = "physician")
 //TODO PH02 - Do we need a mapped super class? If so, which one?
+@NamedQueries({
+    @NamedQuery(
+        name = Physician.ALL_PHYSICIANS_QUERY_NAME,
+        query = "SELECT p FROM Physician p LEFT JOIN FETCH p.medicalCertificates LEFT JOIN FETCH p.prescriptions"
+    ),
+    @NamedQuery(
+        name = Physician.QUERY_PHYSICIAN_BY_ID,
+        query = "SELECT p FROM Physician p LEFT JOIN FETCH p.medicalCertificates LEFT JOIN FETCH p.prescriptions WHERE p.id = :id"
+    )
+})
 public class Physician extends PojoBase implements Serializable {
-	private static final long serialVersionUID = 1L;
 
+    private static final long serialVersionUID = 1L;
+
+    // Query names
+    public static final String ALL_PHYSICIANS_QUERY_NAME = "Physician.findAll";
+    public static final String QUERY_PHYSICIAN_BY_ID = "Physician.findById";
+
+    // Constructors
     public Physician() {
-    	super();
+        super();
     }
-
 	// TODO PH03 - Add annotations.
+    @Basic(optional = false)
     @Column(name = "first_name", length = 60, nullable = false)
 	private String firstName;
 
 	// TODO PH04 - Add annotations.
+    @Basic(optional = false)
     @Column(name = "last_name", length = 60, nullable = false)
 	private String lastName;
 
 	// TODO PH05 - Add annotations for 1:M relation.  What should be the cascade and fetch types?
-    @OneToMany(mappedBy = "physician", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @OneToMany(mappedBy = "owner", cascade = CascadeType.MERGE, fetch = FetchType.LAZY)
 	private Set<MedicalCertificate> medicalCertificates = new HashSet<>();
 
 	// TODO PH06 - Add annotations for 1:M relation.  What should be the cascade and fetch types?
-    @OneToMany(mappedBy = "physician", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @OneToMany(mappedBy = "physician", cascade = CascadeType.MERGE, fetch = FetchType.LAZY)
 	private Set<Prescription> prescriptions = new HashSet<>();
 
 	public String getFirstName() {
@@ -66,7 +88,7 @@ public class Physician extends PojoBase implements Serializable {
 	}
 
 	// TODO PH07 - Is an annotation needed here?
-	// No
+	@JsonIgnore
     public Set<MedicalCertificate> getMedicalCertificates() {
 		return medicalCertificates;
 	}
@@ -76,7 +98,7 @@ public class Physician extends PojoBase implements Serializable {
 	}
 
 	// TODO PH08 - Is an annotation needed here?
-	// No
+	@JsonIgnore
     public Set<Prescription> getPrescriptions() {
 		return prescriptions;
 	}

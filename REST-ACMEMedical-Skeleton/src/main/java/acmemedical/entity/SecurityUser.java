@@ -13,6 +13,24 @@ import java.util.HashSet;
 import java.util.Objects;
 import java.util.Set;
 
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+
+import acmemedical.rest.serializer.SecurityRoleSerializer;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.JoinTable;
+import jakarta.persistence.ManyToMany;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.NamedQuery;
+import jakarta.persistence.OneToMany;
+import jakarta.persistence.OneToOne;
+import jakarta.persistence.Table;
+
 @SuppressWarnings("unused")
 
 /**
@@ -20,28 +38,50 @@ import java.util.Set;
  */
 
 //TODO SU01 - Make this into JPA entity and add all the necessary annotations inside the class.
+@Entity // Make this class a JPA entity
+@Table(name = "security_user") // Optional: name of the table
+@NamedQuery(name = "SecurityUser.userByName", query = "SELECT su FROM SecurityUser su WHERE su.username = :param1")
+@NamedQuery(name = "SecurityUser.userByPhysicianId", query = "SELECT su FROM SecurityUser su WHERE su.physician.id = :param1")
+
 public class SecurityUser implements Serializable, Principal {
     /** Explicit set serialVersionUID */
     private static final long serialVersionUID = 1L;
 
     //TODO SU02 - Add annotations.
+    @Id // Primary key annotation
+    @GeneratedValue(strategy = GenerationType.IDENTITY) // Auto-generate primary key values
+    @Column(name = "user_id") // Specify the column name
     protected int id;
     
     //TODO SU03 - Add annotations.
+    @Column(name = "username", nullable = false, unique = true) // Column details for username
     protected String username;
     
     //TODO SU04 - Add annotations.
+    @Column(name = "password_hash", nullable = false) // Column for password hash
     protected String pwHash;
     
     //TODO SU05 - Add annotations.
+    @OneToOne(fetch = FetchType.LAZY) // One-to-one relationship with Physician
+    @JoinColumn(name = "physician_id", referencedColumnName = "id") // Join column details
     protected Physician physician;
     
-    //TODO SU06 - Add annotations.
+    @JoinTable(
+    		name = "user_has_role",
+    		joinColumns = @JoinColumn(
+    				name = "user_id",
+    				referencedColumnName = "user_id"),
+    		inverseJoinColumns = @JoinColumn(
+    				name = "role_id",
+    				referencedColumnName = "role_id")
+    		)
+    @OneToMany
     protected Set<SecurityRole> roles = new HashSet<SecurityRole>();
 
     public SecurityUser() {
         super();
     }
+
 
     public int getId() {
         return id;

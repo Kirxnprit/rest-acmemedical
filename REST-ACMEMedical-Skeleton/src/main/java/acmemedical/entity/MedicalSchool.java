@@ -11,109 +11,127 @@ import java.util.HashSet;
 import java.util.Objects;
 import java.util.Set;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 
+import jakarta.persistence.AttributeOverride;
+import jakarta.persistence.Basic;
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.Inheritance;
 import jakarta.persistence.InheritanceType;
+import jakarta.persistence.NamedQueries;
+import jakarta.persistence.NamedQuery;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
+import jakarta.persistence.Transient;
 
 /**
  * The persistent class for the medical_school database table.
  */
-//TODO MS01 - Add the missing annotations.
-//TODO MS02 - MedicalSchool has subclasses PublicSchool and PrivateSchool.  Look at Week 9 slides for InheritanceType.
-//TODO MS03 - Do we need a mapped super class?  If so, which one?
-//TODO MS04 - Add in JSON annotations to indicate different sub-classes of MedicalSchool
-@Entity  // MS01: Mark as a JPA entity
-@Table(name = "medical_school")  // MS01: Specify the table name
-@Inheritance(strategy = InheritanceType.SINGLE_TABLE)  // MS02: Define inheritance strategy
-@JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type")  // MS04: JSON type info for subclasses
+@Entity
+@Table(name = "medical_school")
+@AttributeOverride(name = "id", column = @Column(name = "school_id")) // MS05 - Attribute override for ID
+@Inheritance(strategy = InheritanceType.JOINED) // MS02 - Using JOINED inheritance strategy
+@NamedQueries({
+    @NamedQuery(
+        name = MedicalSchool.ALL_MEDICAL_SCHOOLS_QUERY_NAME, 
+        query = "SELECT m FROM MedicalSchool m LEFT JOIN FETCH m.medicalTrainings"
+    ),
+    @NamedQuery(
+        name = MedicalSchool.IS_DUPLICATE_QUERY_NAME, 
+        query = "SELECT COUNT(m) FROM MedicalSchool m WHERE m.name = :name"
+    ),
+    @NamedQuery(
+            name = MedicalSchool.SPECIFIC_MEDICAL_SCHOOL_QUERY_NAME, 
+            query = "SELECT DISTINCT m FROM MedicalSchool m LEFT JOIN FETCH m.medicalTrainings WHERE m.id = :param1"
+    ),
+})
+@JsonInclude(JsonInclude.Include.NON_NULL) // MS04 - Include non-null fields in JSON
+@JsonTypeInfo(use = JsonTypeInfo.Id.NAME, include = JsonTypeInfo.As.PROPERTY, property = "type", visible = true)
 @JsonSubTypes({
-    @JsonSubTypes.Type(value = PublicSchool.class, name = "publicSchool"),
-    @JsonSubTypes.Type(value = PrivateSchool.class, name = "privateSchool")
+    @JsonSubTypes.Type(value = PublicSchool.class, name = "public"),
+    @JsonSubTypes.Type(value = PrivateSchool.class, name = "private")
 })
 public abstract class MedicalSchool extends PojoBase implements Serializable {
-	private static final long serialVersionUID = 1L;
-	
-	// TODO MS05 - Add the missing annotations.
-    @Column(name = "name", nullable = false, unique = true)
-	private String name;
 
-	// TODO MS06 - Add the 1:M annotation.  What should be the cascade and fetch types?
-    @OneToMany(mappedBy = "medicalSchool", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
-	private Set<MedicalTraining> medicalTrainings = new HashSet<>();
+    private static final long serialVersionUID = 1L;
 
-	// TODO MS07 - Add missing annotation.
-    @Column(name = "is_public")
-	private boolean isPublic;
+    public static final String ALL_MEDICAL_SCHOOLS_QUERY_NAME = "MedicalSchool.allSchools";
+    public static final String IS_DUPLICATE_QUERY_NAME = "MedicalSchool.isDuplicate";
+    public static final String SPECIFIC_MEDICAL_SCHOOL_QUERY_NAME = "MedicalSchool.findById";
+    
+    @Basic(optional = false)
+    @Column(name = "name", nullable = false, unique = true, length = 100) // MS05 - Add unique constraint
+    private String name;
 
-	public MedicalSchool() {
-		super();
-	}
+    @OneToMany(mappedBy = "medicalSchool", cascade = CascadeType.ALL, fetch = FetchType.LAZY, orphanRemoval = true)
+    private Set<MedicalTraining> medicalTrainings = new HashSet<>();
+
+    @JsonProperty
+    @Transient
+    private boolean isPublic; // Transient property for JSON serialization
+
+    @JsonProperty
+    @Transient
+    protected String type;
+
+    public MedicalSchool() {
+        super();
+    }
 
     public MedicalSchool(boolean isPublic) {
         this();
         this.isPublic = isPublic;
     }
 
-	// TODO MS08 - Is an annotation needed here?
-	public Set<MedicalTraining> getMedicalTrainings() {
-		return medicalTrainings;
-	}
+    @JsonIgnore
+    public Set<MedicalTraining> getMedicalTrainings() {
+        return medicalTrainings;
+    }
 
-	public void setMedicalTrainings(Set<MedicalTraining> medicalTrainings) {
-		this.medicalTrainings = medicalTrainings;
-	}
+    public void setMedicalTrainings(Set<MedicalTraining> medicalTrainings) {
+        this.medicalTrainings = medicalTrainings;
+    }
 
-	public void setName(String name) {
-		this.name = name;
-	}
+    public String getName() {
+        return name;
+    }
 
-	public String getName() {
-		return name;
-	}
+    public void setName(String name) {
+        this.name = name;
+    }
 
-	//Inherited hashCode/equals is NOT sufficient for this entity class
-	
-	/**
-	 * Very important:  Use getter's for member variables because JPA sometimes needs to intercept those calls<br/>
-	 * and go to the database to retrieve the value
-	 */
-	@Override
-	public int hashCode() {
-		final int prime = 31;
-		int result = super.hashCode();
-		// Only include member variables that really contribute to an object's identity
-		// i.e. if variables like version/updated/name/etc. change throughout an object's lifecycle,
-		// they shouldn't be part of the hashCode calculation
-		
-		// The database schema for the MEDICAL_SCHOOL table has a UNIQUE constraint for the NAME column,
-		// so we should include that in the hash/equals calculations
-		
-		return prime * result + Objects.hash(getId(), getName());
-	}
+    /**
+     * Very important: Use getter's for member variables because JPA sometimes needs to intercept those calls
+     * and go to the database to retrieve the value
+     */
+    @Override
+    public int hashCode() {
+        final int prime = 31;
+        int result = super.hashCode();
+        // Only include member variables that contribute to identity
+        return prime * result + Objects.hash(getId(), getName());
+    }
 
-	@Override
-	public boolean equals(Object obj) {
-		if (this == obj) {
-			return true;
-		}
-		if (obj == null) {
-			return false;
-		}
-		
-		if (obj instanceof MedicalSchool otherMedicalSchool) {
-			// See comment (above) in hashCode():  Compare using only member variables that are
-			// truly part of an object's identity
-			return Objects.equals(this.getId(), otherMedicalSchool.getId()) &&
-				Objects.equals(this.getName(), otherMedicalSchool.getName());
-		}
-		return false;
-	}
+    @Override
+    public boolean equals(Object obj) {
+        if (this == obj) {
+            return true;
+        }
+        if (obj == null) {
+            return false;
+        }
+        if (obj instanceof MedicalSchool otherMedicalSchool) {
+            // Compare using only member variables that are truly part of identity
+            return Objects.equals(this.getId(), otherMedicalSchool.getId()) &&
+                Objects.equals(this.getName(), otherMedicalSchool.getName());
+        }
+        return false;
+    }
 }
