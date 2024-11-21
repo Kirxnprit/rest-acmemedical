@@ -1,4 +1,5 @@
 /********************************************************************************************************
+
  * File:  MedicalSchool.java Course Materials CST 8277
  *
  * @author Teddy Yap
@@ -15,12 +16,15 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
+import com.fasterxml.jackson.annotation.JsonSubTypes.Type;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 
 import jakarta.persistence.AttributeOverride;
 import jakarta.persistence.Basic;
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
+import jakarta.persistence.DiscriminatorColumn;
+import jakarta.persistence.DiscriminatorType;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.Inheritance;
@@ -37,7 +41,7 @@ import jakarta.persistence.Transient;
 @Entity
 @Table(name = "medical_school")
 @AttributeOverride(name = "id", column = @Column(name = "school_id")) // MS05 - Attribute override for ID
-@Inheritance(strategy = InheritanceType.JOINED) // MS02 - Using JOINED inheritance strategy
+@Inheritance(strategy = InheritanceType.SINGLE_TABLE) // MS02 - Using JOINED inheritance strategy
 @NamedQueries({
     @NamedQuery(
         name = MedicalSchool.ALL_MEDICAL_SCHOOLS_QUERY_NAME, 
@@ -45,32 +49,33 @@ import jakarta.persistence.Transient;
     ),
     @NamedQuery(
         name = MedicalSchool.IS_DUPLICATE_QUERY_NAME, 
-        query = "SELECT COUNT(m) FROM MedicalSchool m WHERE m.name = :name"
+        query = "SELECT COUNT(m) FROM MedicalSchool m WHERE m.name = :param1"
     ),
     @NamedQuery(
             name = MedicalSchool.SPECIFIC_MEDICAL_SCHOOL_QUERY_NAME, 
-            query = "SELECT DISTINCT m FROM MedicalSchool m LEFT JOIN FETCH m.medicalTrainings WHERE m.id = :param1"
+            query = "SELECT DISTINCT m FROM MedicalSchool m LEFT JOIN FETCH m.medicalTrainings WHERE m.id=:param1"
     ),
 })
+@DiscriminatorColumn(columnDefinition = "bit(1)", name = "public", discriminatorType = DiscriminatorType.INTEGER)
 @JsonInclude(JsonInclude.Include.NON_NULL) // MS04 - Include non-null fields in JSON
 @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, include = JsonTypeInfo.As.PROPERTY, property = "type", visible = true)
 @JsonSubTypes({
-    @JsonSubTypes.Type(value = PublicSchool.class, name = "public"),
-    @JsonSubTypes.Type(value = PrivateSchool.class, name = "private")
+    @Type(value = PublicSchool.class, name = "public_school"),
+    @Type(value = PrivateSchool.class, name = "private_school")
 })
 public abstract class MedicalSchool extends PojoBase implements Serializable {
 
     private static final long serialVersionUID = 1L;
 
-    public static final String ALL_MEDICAL_SCHOOLS_QUERY_NAME = "MedicalSchool.allSchools";
+    public static final String ALL_MEDICAL_SCHOOLS_QUERY_NAME = "MedicalSchool.findAll";
     public static final String IS_DUPLICATE_QUERY_NAME = "MedicalSchool.isDuplicate";
-    public static final String SPECIFIC_MEDICAL_SCHOOL_QUERY_NAME = "MedicalSchool.findById";
+    public static final String SPECIFIC_MEDICAL_SCHOOL_QUERY_NAME = "MedicalSchool.findByName";
     
     @Basic(optional = false)
     @Column(name = "name", nullable = false, unique = true, length = 100) // MS05 - Add unique constraint
     private String name;
 
-    @OneToMany(mappedBy = "medicalSchool", cascade = CascadeType.ALL, fetch = FetchType.LAZY, orphanRemoval = true)
+    @OneToMany(mappedBy = "school", cascade = CascadeType.ALL, fetch = FetchType.LAZY, orphanRemoval = true)
     private Set<MedicalTraining> medicalTrainings = new HashSet<>();
 
     @JsonProperty

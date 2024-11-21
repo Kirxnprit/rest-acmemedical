@@ -30,15 +30,14 @@ import jakarta.persistence.Table;
 //TODO MC02 - Do we need a mapped super class?  If so, which one?
 @Entity(name ="MedicalCertificate")
 @Table(name = "medical_certificate")  
-@AttributeOverride(name = "id", column = @Column(name = "certificate_id"))  // Override the id field to certificate_id
 @NamedQueries({
     @NamedQuery(
-        name = MedicalCertificate.ALL_CARDS_QUERY_NAME,
+        name = MedicalCertificate.ALL_CTF_QUERY_NAME,
         query = "SELECT mc FROM MedicalCertificate mc LEFT JOIN FETCH mc.medicalTraining"
     ),
     @NamedQuery(
-        name = MedicalCertificate.ID_CARD_QUERY_NAME,
-        query = "SELECT mc FROM MedicalCertificate mc LEFT JOIN FETCH mc.medicalTraining WHERE mc.id = :id"
+        name = MedicalCertificate.ID_CTF_QUERY_NAME,
+        query = "SELECT mc FROM MedicalCertificate mc LEFT JOIN FETCH mc.medicalTraining WHERE mc.id = :param1"
     )
 })
 @AttributeOverride(name = "id", column = @Column(name = "certificate_id"))
@@ -47,8 +46,8 @@ public class MedicalCertificate extends PojoBase implements Serializable {
 	private static final long serialVersionUID = 1L;
 	
 	 // Named query constants
-    public static final String ALL_CARDS_QUERY_NAME = "MedicalCertificate.findAll";
-    public static final String ID_CARD_QUERY_NAME = "MedicalCertificate.findById";
+    public static final String ALL_CTF_QUERY_NAME = "MedicalCertificate.findAll";
+    public static final String ID_CTF_QUERY_NAME = "MedicalCertificate.findById";
 
 
 	// TODO MC03 - Add annotations for 1:1 mapping.  What should be the cascade and fetch types?

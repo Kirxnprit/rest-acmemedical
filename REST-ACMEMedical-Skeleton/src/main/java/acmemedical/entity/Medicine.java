@@ -37,7 +37,7 @@ import jakarta.persistence.Transient;
 //Hint - @NamedQuery attached to this class which uses JPQL/HQL.  SQL cannot be used with NamedQuery.
 //Hint - @NamedQuery uses the name which is defined in @Entity for JPQL, if no name is defined use class name.
 //Hint - @NamedNativeQuery can optionally be used if there is a need for SQL query.
-@NamedQuery(name = "Medicine.findAll", query = "SELECT m FROM Medicine m")
+@NamedQuery(name = "Medicine.findAll", query = "SELECT m FROM Medicine m left join fetch m.prescriptions")
 //Hint - @AttributeOverride can override column details.  This entity uses medicine_id as its primary key name, it needs to override the name in the mapped super class.
 @AttributeOverride(name = "id", column = @Column(name = "medicine_id"))
 //Hint - PojoBase is inherited by any entity with integer as their primary key.

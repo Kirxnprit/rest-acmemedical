@@ -10,7 +10,10 @@ import java.io.Serializable;
 import java.util.HashSet;
 import java.util.Set;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+
 import jakarta.persistence.AttributeOverride;
+import jakarta.persistence.Basic;
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -33,30 +36,38 @@ import jakarta.persistence.Table;
 public class Patient extends PojoBase implements Serializable {
 	private static final long serialVersionUID = 1L;
 	 public static final String ALL_PATIENTS_QUERY = "Patient.findAll";
-
+    
+	 @Basic(optional = false)
     @Column(name = "first_name", nullable = false, length = 50)
 	private String firstName;
-
+	 
+	 @Basic(optional = false)
     @Column(name = "last_name", nullable = false, length = 50)
 	private String lastName;
-
+    
+	 @Basic(optional = false)
     @Column(name = "year_of_birth", nullable = false)
 	private int year;
-
+    
+	 @Basic(optional = false)
     @Column(name = "home_address", nullable = false, length = 100)
 	private String address;
-
+    
+	 @Basic(optional = false)
     @Column(name = "height_cm", nullable = false)
 	private int height;
-
+	 
+	 @Basic(optional = false)
     @Column(name = "weight_kg", nullable = false)
 	private int weight;
-
+	 
+	 @Basic(optional = false)
     @Column(name = "smoker", nullable = false)
 	private byte smoker;
 
-    @OneToMany(mappedBy = "patient", cascade = CascadeType.ALL, fetch = FetchType.LAZY, orphanRemoval = true)
-	private Set<Prescription> prescriptions = new HashSet<>();
+    @OneToMany(mappedBy = "patient", cascade = CascadeType.MERGE, fetch = FetchType.LAZY, orphanRemoval = true)
+	@JsonIgnore
+    private Set<Prescription> prescriptions = new HashSet<>();
 
 	public Patient() {
 		super();

@@ -174,15 +174,25 @@ public class ACMEMedicalService implements Serializable {
     public void deletePhysicianById(int id) {
         Physician physician = getPhysicianById(id);
         if (physician != null) {
-            em.refresh(physician);
-            TypedQuery<SecurityUser> findUser = em.createNamedQuery("SecurityUser.findByPhysicianId", SecurityUser.class)
-                    .setParameter("physicianId", id);
+        	TypedQuery<SecurityUser> findUser = em.createNamedQuery("SecurityUser.userByPhysicianId", SecurityUser.class);
 
-            SecurityUser sUser = findUser.getSingleResult();
-            em.remove(sUser);
-            em.remove(physician);
-        }
-    }
+			findUser.setParameter("param1", id);
+			SecurityUser sUser = null;
+
+			try {
+				sUser = findUser.getSingleResult();
+				em.remove(sUser);
+				LOG.debug("just finished removing Physicianuser");
+				em.remove(physician);
+				LOG.debug("just finished removing physician");
+			} catch (Exception e) {
+				LOG.debug("***  caught exception attempting to delete physician");
+				e.printStackTrace();
+			}
+		}
+	}
+
+
     
     public List<MedicalSchool> getAllMedicalSchools() {
         CriteriaBuilder cb = em.getCriteriaBuilder();
@@ -211,6 +221,11 @@ public class ACMEMedicalService implements Serializable {
         allQuery.setParameter(PARAM1, id);
         return allQuery.getSingleResult();
     }
+    @Transactional
+    public <T> T persist(T newEntity) {
+        em.persist(newEntity);
+        return newEntity;
+    }
 
     @Transactional
     public MedicalSchool deleteMedicalSchool(int id) {
@@ -222,7 +237,7 @@ public class ACMEMedicalService implements Serializable {
             medicalTrainings.forEach(list::add);
             list.forEach(mt -> {
                 if (mt.getCertificate() != null) {
-                    MedicalCertificate mc = getById(MedicalCertificate.class, MedicalCertificate.ID_CARD_QUERY_NAME, mt.getCertificate().getId());
+                    MedicalCertificate mc = getById(MedicalCertificate.class, MedicalCertificate.ID_CTF_QUERY_NAME, mt.getCertificate().getId());
                     mc.setMedicalTraining(null);
                 }
                 mt.setCertificate(null);
@@ -282,5 +297,141 @@ public class ACMEMedicalService implements Serializable {
         }
         return medicalTrainingToBeUpdated;
     }
+    
+    @Transactional
+    public Medicine getMedicineById(int id) {
+        Medicine medicine = em.find(Medicine.class, id);
+        return medicine;
+    }
+
+    @Transactional
+    public Medicine getMedicineByDrugAndManufacturer(String drugName, String manufacturerName) {
+        Medicine result = null;
+
+        TypedQuery<Medicine> MedicinebyName = em.createNamedQuery(
+            "SELECT m FROM Medicine m WHERE m.drugName = :param1 AND m.manufacturerName = :param2",
+            Medicine.class
+        );
+        MedicinebyName.setParameter("param1", drugName);
+        MedicinebyName.setParameter("param2", manufacturerName);
+
+        result = MedicinebyName.getSingleResult();
+        return result;
+    }
+
+    @Transactional
+    public Medicine persistMedicine(Medicine medicine) {
+        TypedQuery<Long> duplicateMedicineQuery = em.createNamedQuery(
+            "SELECT COUNT(m) FROM Medicine m WHERE m.drugName = :param1 AND m.manufacturerName = :param2",
+            Long.class
+        );
+
+        duplicateMedicineQuery.setParameter("param1", medicine.getDrugName());
+        duplicateMedicineQuery.setParameter("param2", medicine.getManufacturerName());
+
+        if (duplicateMedicineQuery.getSingleResult() >= 1) {
+            return null;
+        } else {
+            em.persist(medicine);
+            return medicine;
+        }
+    }
+
+    @Transactional
+    public void deleteMedicine(int id) {
+        Medicine medicine = em.find(Medicine.class, id);
+
+        try {
+            if (medicine != null) {
+                em.remove(medicine);
+            } else {
+                throw new Exception(String.format("Could not find Medicine with ID %d", id));
+            }
+        } catch (Exception e) {
+            LOG.error(e.getMessage(), e);
+        }
+    }
+
+    @Transactional
+    public Medicine updateMedicine(Medicine updatedMedicine, int id) {
+        Medicine existingMedicine = em.find(Medicine.class, id);
+
+        TypedQuery<Long> duplicateMedicineQuery = em.createQuery(
+            "SELECT COUNT(m) FROM Medicine m WHERE m.drugName = :param1 AND m.manufacturerName = :param2",
+            Long.class
+        );
+
+        duplicateMedicineQuery.setParameter("param1", updatedMedicine.getDrugName());
+        duplicateMedicineQuery.setParameter("param2", updatedMedicine.getManufacturerName());
+
+        if (existingMedicine != null && duplicateMedicineQuery.getSingleResult() <= 1) {
+            existingMedicine.setDrugName(updatedMedicine.getDrugName());
+            existingMedicine.setManufacturerName(updatedMedicine.getManufacturerName());
+            existingMedicine.setDosageInformation(updatedMedicine.getDosageInformation());
+            existingMedicine.setChemicalName(updatedMedicine.getChemicalName());
+            existingMedicine.setGenericName(updatedMedicine.getGenericName());
+
+            em.merge(existingMedicine);
+            em.flush();
+        }
+
+        return existingMedicine;
+    }
+    
+ // Method to get all prescriptions
+    public List<Prescription> getAllPrescriptions() {
+        return em.createNamedQuery("Prescription.findAll", Prescription.class).getResultList();
+    }
+
+    // Method to get a prescription by physicianId, patientId, and medicineId
+    public Prescription getPrescriptionById(int physicianId, int patientId) {
+        PrescriptionPK pk = new PrescriptionPK(physicianId, patientId);
+        return em.find(Prescription.class, pk);
+    }
+
+    // Method to add a new prescription
+    public void addPrescription(Prescription prescription) {
+        em.persist(prescription);
+    }
+
+    // Method to delete a prescription
+    public boolean deletePrescription(int physicianId, int patientId) {
+        PrescriptionPK pk = new PrescriptionPK(physicianId, patientId);
+        Prescription prescription = em.find(Prescription.class, pk);
+        if (prescription != null) {
+            em.remove(prescription);
+            return true;
+        }
+        return false;
+    }
+
+    // Method to update a prescription
+    public boolean updatePrescription(int physicianId, int patientId, Prescription updatedPrescription) {
+        PrescriptionPK pk = new PrescriptionPK(physicianId, patientId);
+        Prescription existingPrescription = em.find(Prescription.class, pk);
+        if (existingPrescription != null) {
+            existingPrescription.setPatient(updatedPrescription.getPatient());
+            existingPrescription.setNumberOfRefills(updatedPrescription.getNumberOfRefills());
+            existingPrescription.setPrescriptionInformation(updatedPrescription.getPrescriptionInformation());
+            em.merge(existingPrescription);
+            return true;
+        }
+        return false;
+    }
+
+    // Method to associate a medicine with a prescription
+    public boolean associateMedicine(int physicianId, int patientId, int prescriptionId) {
+        PrescriptionPK pk = new PrescriptionPK(physicianId, patientId);
+        Prescription prescription = em.find(Prescription.class, pk);
+        if (prescription != null) {
+                em.merge(prescription);
+                return true;
+            }
+        
+        return false;
+    }
+
+
+    
     
 }

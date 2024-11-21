@@ -43,7 +43,7 @@ import jakarta.persistence.Table;
     ),
     @NamedQuery(
         name = MedicalTraining.FIND_BY_ID,
-        query = "SELECT mt FROM MedicalTraining mt LEFT JOIN FETCH mt.school LEFT JOIN FETCH mt.certificate WHERE mt.id = :id"
+        query = "SELECT mt FROM MedicalTraining mt LEFT JOIN FETCH mt.school LEFT JOIN FETCH mt.certificate WHERE mt.id = :param1"
     )
 })
 
@@ -58,8 +58,7 @@ public class MedicalTraining extends PojoBase implements Serializable {
 	private MedicalSchool school;
 
 	// TODO MT04 - Add annotations for 1:1.  What should be the cascade and fetch types?
-	 @OneToOne(cascade = CascadeType.ALL, fetch = FetchType.LAZY)
-	 @JoinColumn(name = "certificate_id", nullable = false)
+	 @OneToOne(mappedBy ="medicalTraining",cascade = CascadeType.ALL, fetch = FetchType.LAZY)
 	 @JsonIgnore
 	private MedicalCertificate certificate;
 

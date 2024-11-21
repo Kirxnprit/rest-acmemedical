@@ -49,6 +49,7 @@ public class MedicalSchoolResource {
     protected SecurityContext sc;
     
     @GET
+    @RolesAllowed({USER_ROLE, ADMIN_ROLE})
     public Response getMedicalSchools() {
         LOG.debug("Retrieving all medical schools...");
         List<MedicalSchool> medicalSchools = service.getAllMedicalSchools();
@@ -58,6 +59,7 @@ public class MedicalSchoolResource {
     }
     
     @GET
+    @RolesAllowed({ADMIN_ROLE, USER_ROLE})
     // TODO MSR01 - Specify the roles allowed for this method
     @Path("/{medicalSchoolId}")
     public Response getMedicalSchoolById(@PathParam("medicalSchoolId") int medicalSchoolId) {
@@ -68,6 +70,7 @@ public class MedicalSchoolResource {
     }
 
     @DELETE
+    @RolesAllowed({ADMIN_ROLE})
     // TODO MSR02 - Specify the roles allowed for this method
     @Path("/{medicalSchoolId}")
     public Response deleteMedicalSchool(@PathParam("medicalSchoolId") int msId) {

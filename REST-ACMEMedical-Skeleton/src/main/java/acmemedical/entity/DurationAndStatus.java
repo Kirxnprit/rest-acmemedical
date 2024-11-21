@@ -31,7 +31,7 @@ public class DurationAndStatus implements Serializable {
 
 	// TODO DS04 - Add annotations
 	@Basic(optional = false)
-	@Column(name = "active", nullable = false)
+	@Column(name = "active", nullable = false , columnDefinition = "BIT(1)")
 	private byte active;
 
 	public DurationAndStatus() {
