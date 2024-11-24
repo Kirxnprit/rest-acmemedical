@@ -430,6 +430,132 @@ public class ACMEMedicalService implements Serializable {
         
         return false;
     }
+    @Transactional
+    public Patient getPatientById(int id) {
+        LOG.debug("********* getPatient with id " + id + "");
+        System.out.println("********* getPatient with id " + id + "");
+        Patient result = null;
+        try {
+            LOG.debug("service about to find patient with id " + id);
+            result = em.find(Patient.class, id);
+            LOG.debug("just found patient: " + result);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return result;
+    }
+
+    @Transactional
+    public Patient persistPatient(Patient newPatient) {
+        LOG.debug("Persisting new patient: " + newPatient);
+        em.persist(newPatient);
+        return newPatient;
+    }
+
+    @Transactional
+    public Patient updatePatientById(int id, Patient patientWithUpdates) {
+        LOG.debug("********* updatePatient with id " + id + "");
+        Patient patientToBeUpdated = getPatientById(id);
+        LOG.debug("patientToBeUpdated: " + patientToBeUpdated);
+        if (patientToBeUpdated != null) {
+            LOG.debug("********* patient to be updated is not null...merging");
+            em.refresh(patientToBeUpdated);
+            LOG.debug("just refreshed patient to be updated... about to merge");
+            em.merge(patientWithUpdates);
+            LOG.debug("just finished merging");
+            em.flush();
+        }
+        return patientToBeUpdated;
+    }
+
+    @Transactional
+    public void deletePatientById(int id) {
+        LOG.debug("service about to delete patient");
+        Patient patientToBeDeleted = getPatientById(id);
+        if (patientToBeDeleted != null) {
+            LOG.debug("patient to delete is not null... refreshing");
+            em.refresh(patientToBeDeleted);
+            LOG.debug("about to remove patient");
+            em.remove(patientToBeDeleted);
+            LOG.debug("patient successfully removed");
+        }
+    }
+    
+
+    /**
+     * Fetches all MedicalCertificate records from the database.
+     * 
+     * @return a list of all MedicalCertificate records
+     */
+    @Transactional
+    public List<MedicalCertificate> getAllMedicalCertificates() {
+        try {
+            return em.createNamedQuery(MedicalCertificate.ALL_CTF_QUERY_NAME, MedicalCertificate.class).getResultList();
+        } catch (Exception e) {
+            e.printStackTrace();
+            return null;
+        }
+    }
+
+    /**
+     * Fetches a MedicalCertificate by its ID.
+     * 
+     * @param id the ID of the MedicalCertificate to fetch
+     * @return the MedicalCertificate entity or null if not found
+     */
+    @Transactional
+    public MedicalCertificate getMedicalCertificateById(int id) {
+        try {
+            return em.createNamedQuery(MedicalCertificate.ID_CTF_QUERY_NAME, MedicalCertificate.class)
+                     .setParameter("param1", id)
+                     .getSingleResult();
+        } catch (Exception e) {
+            e.printStackTrace();
+            return null;
+        }
+    }
+    
+    /**
+     * Persists a new MedicalCertificate in the database.
+     * 
+     * @param newCertificate the MedicalCertificate entity to persist
+     * @return the persisted MedicalCertificate or null if the operation fails
+     */
+    @Transactional
+    public MedicalCertificate persistMedicalCertificate(MedicalCertificate newCertificate) {
+        try {
+            em.persist(newCertificate);
+            em.flush(); // Ensures changes are immediately reflected
+            return newCertificate;
+        } catch (Exception e) {
+            e.printStackTrace();
+            return null;
+        }
+    }
+
+    /**
+     * Updates an existing MedicalCertificate in the database.
+     * 
+     * @param updatedCertificate the MedicalCertificate with updated data
+     * @param id the ID of the MedicalCertificate to update
+     * @return the updated MedicalCertificate or null if not found
+     */
+    @Transactional
+    public MedicalCertificate updateMedicalCertificate(MedicalCertificate updatedCertificate, int id) {
+        try {
+            MedicalCertificate existingCertificate = em.find(MedicalCertificate.class, id);
+            if (existingCertificate != null) {
+                updatedCertificate.setId(id); // Ensure the same ID is retained
+                em.merge(updatedCertificate);
+                em.flush();
+                return updatedCertificate;
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return null;
+    }
+
 
 
     
